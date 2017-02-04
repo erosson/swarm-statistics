@@ -1,4 +1,4 @@
-import statistics from '../../src/swarm-statistics';
+import statistics from '../../src/main';
 
 describe('statistics', () => {
   describe('Greet function', () => {

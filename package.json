@@ -51,7 +51,7 @@
     "webpack-stream": "3.2.0"
   },
   "babelBoilerplateOptions": {
-    "entryFileName": "swarm-statistics.js",
+    "entryFileName": "main.js",
     "mainVarName": "statistics"
   }
 }
