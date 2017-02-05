@@ -53,5 +53,8 @@
   "babelBoilerplateOptions": {
     "entryFileName": "main.js",
     "mainVarName": "statistics"
+  },
+  "dependencies": {
+    "lodash": "4.17.4"
   }
 }
