@@ -1,0 +1,39 @@
+{
+  "coverage": "0%",
+  "expectCount": 20,
+  "actualCount": 0,
+  "files": {
+    "src/old.main.js": {
+      "expectCount": 12,
+      "actualCount": 0,
+      "undocumentLines": [
+        56,
+        41,
+        43,
+        42,
+        57,
+        72,
+        44,
+        62,
+        58,
+        59,
+        46,
+        60
+      ]
+    },
+    "src/main.js": {
+      "expectCount": 8,
+      "actualCount": 0,
+      "undocumentLines": [
+        44,
+        45,
+        49,
+        47,
+        63,
+        46,
+        66,
+        60
+      ]
+    }
+  }
+}

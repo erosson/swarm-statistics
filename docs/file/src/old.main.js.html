@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">src/old.main.js | API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  <a href="test.html" data-ice="testLink">Test</a>
+  <a data-ice="repoURL" href="https://github.com/erosson/swarm-statistics.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/main.js~Statistic.html">Statistic</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/old.main.js~Builder.html">Builder</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/old.main.js~StatBuilder.html">StatBuilder</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/old.main.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">import _ from &apos;lodash&apos;
+
+function assert(value, message) {
+  if (!value) {
+    throw new Error(message)
+  }
+  return value
+}
+const types = {
+  replace: {
+    init: null,
+    reduce: (total, val) =&gt; val,
+    // thresholds for replace don&apos;t make sense
+    isComplete: (total, quota) =&gt; null,
+    percent: (total, quota) =&gt; null,
+    sortBy: _.iteratee(&apos;quota&apos;),
+  },
+  max: {
+    init: Number.NEGATIVE_INFINITY,
+    reduce: Math.max,
+    percent: (total, quota) =&gt; total / quota,
+    isComplete(total, quota) {return this.percent(total, quota) &gt;= 1},
+    sortBy: _.iteratee(&apos;quota&apos;),
+  },
+  min: {
+    init: Number.POSITIVE_INFINITY,
+    reduce: Math.min,
+    isComplete: (total, quota) =&gt; total &lt;= quota,
+    percent: (total, quota) =&gt; null,
+    sortBy: _.negate(_.iteratee(&apos;quota&apos;))
+  },
+  incr: {
+    init: 0,
+    reduce: (total, val=1) =&gt; total + val,
+    percent: (total, quota) =&gt; total / quota,
+    isComplete(total, quota) {return this.percent(total, quota) &gt;= 1},
+    sortBy: _.iteratee(&apos;quota&apos;),
+  },
+}
+
+export class StatBuilder {
+  constructor(builder, name) {
+    this.builder = builder
+    this.name = name
+  }
+  threshold(quota, name) {
+    const thresh = {statName: this.name, quota, name}
+    thresh.promise = new Promise((resolve, reject) =&gt; {
+      thresh._resolve = resolve
+      thresh._reject = reject
+    })
+    this.builder.thresholds.push(thresh)
+    return thresh.promise
+  }
+}
+export class Builder {
+  constructor() {
+    this.stats = []
+    this.statsByName = {}
+    this.thresholds = []
+  }
+  stat(name, type) {
+    if (!this.statsByName[name]) {
+      const stat = {name, type: types[type] || type}
+      assert(stat.type.reduce, &apos;no such stattype: &apos;+stat)
+      this.stats.push(stat)
+      this.statsByName[name] = stat
+    }
+    return new StatBuilder(this, name)
+  }
+
+  create(values={}) {
+    return new Statistics(this.statsByName, this.thresholds, values)
+  }
+}
+
+class Threshold {
+  constructor(statistics, data) {
+    this._statistics = statistics
+    this._data = data
+    this._stat = assert(this._statistics.stats[this._data.statName])
+  }
+  _value() {
+    return this._statistics.value(this._stat.name)
+  }
+  isComplete(value=this._value()) {
+    return this._stat.type.isComplete(value, this._data.quota)
+  }
+  percent(value=this._value()) {
+    return this._stat.type.percent(value, this._data.quota)
+  }
+}
+class Statistics {
+  constructor(stats, thresholds, values) {
+    this.stats = stats // name: {name, type}
+    this.thresholds = thresholds // [{name?, statName, quota, promise, _resolve}]
+    this.values = values // statName: value
+    this.thresholds = this.thresholds.map((thresh) =&gt; new Threshold(this, thresh))
+    this.thresholdsByName = _.keyBy(_.filter(this.thresholds, &apos;_data.name&apos;), &apos;_data.name&apos;)
+    this.thresholdsByStat = _.groupBy(this.thresholds, &apos;_data.statName&apos;)
+  }
+  update(name, val) {
+    return this.updates({[name]: val})
+  }
+  updates(obj) {
+    const completed = []
+    this.values = Object.assign(this.values, _.mapValues(obj, (value, name) =&gt; {
+      const stat = assert(this.stats[name], &apos;no such stat: &apos;+name)
+      const total = this.value(name, stat)
+      const ret = stat.type.reduce(total, value)
+      // just completed
+      // TODO index this so we don&apos;t have to test every threshold every time
+      for (let thresh of this.thresholdsByStat[name] || []) {
+        if (!thresh.isComplete(total) &amp;&amp; thresh.isComplete(ret)) {
+          completed.push(thresh)
+          thresh._data._resolve(ret)
+        }
+      }
+      return ret
+    }))
+    //return completed.map((thresh) =&gt; thresh.name)
+  }
+  value(name, _stat=this.stats[name]) {
+    return _.get(this.values, name, _stat.type.init)
+  }
+  threshold(name) {
+    return assert(this.thresholdsByName[name], &apos;no such threshold: &apos;+name)
+  }
+}
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>
