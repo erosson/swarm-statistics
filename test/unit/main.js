@@ -1,4 +1,4 @@
-import * as s from '../../src/main2';
+import * as s from '../../src/main';
 
 describe('statistics', () => {
   it('defines max stats', () => {
