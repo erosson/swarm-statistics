@@ -13,24 +13,28 @@ const types = {
     // thresholds for replace don't make sense
     isComplete: (total, quota) => null,
     percent: (total, quota) => null,
+    sortBy: _.iteratee('quota'),
   },
   max: {
     init: Number.NEGATIVE_INFINITY,
     reduce: Math.max,
     percent: (total, quota) => total / quota,
-    isComplete(total, quota) {return this.percent(total, quota) >= 1}
+    isComplete(total, quota) {return this.percent(total, quota) >= 1},
+    sortBy: _.iteratee('quota'),
   },
   min: {
     init: Number.POSITIVE_INFINITY,
     reduce: Math.min,
     isComplete: (total, quota) => total <= quota,
     percent: (total, quota) => null,
+    sortBy: _.negate(_.iteratee('quota'))
   },
   incr: {
     init: 0,
     reduce: (total, val=1) => total + val,
     percent: (total, quota) => total / quota,
-    isComplete(total, quota) {return this.percent(total, quota) >= 1}
+    isComplete(total, quota) {return this.percent(total, quota) >= 1},
+    sortBy: _.iteratee('quota'),
   },
 }
 

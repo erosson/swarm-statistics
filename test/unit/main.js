@@ -59,7 +59,6 @@ describe('statistics', () => {
     let count=0
     stat.threshold(10, 'named').then(() => {
       stats.update('money', 25)
-      console.log('promise')
     })
     stat.threshold(20).then(() => done())
     stat.threshold(24, 'delayed')
