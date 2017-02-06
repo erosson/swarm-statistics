@@ -1,6 +1,6 @@
 # swarm-statistics
 
-
+work in progress. don't use yet
 
 [![Travis build status](http://img.shields.io/travis/erosson/swarm-statistics.svg?style=flat)](https://travis-ci.org/erosson/swarm-statistics)
 [![Code Climate](https://codeclimate.com/github/erosson/swarm-statistics/badges/gpa.svg)](https://codeclimate.com/github/erosson/swarm-statistics)
